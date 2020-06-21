@@ -34,7 +34,12 @@ func main() {
 		panic(err)
 	}
 
-	spa, err := spanner.NewClient(ctx, fmt.Sprintf("projects/%s/instances/%s/databases/%s", spannerProjectID, "test20200621", "sinmetal"))
+	spa, err := spanner.NewClientWithConfig(ctx, fmt.Sprintf("projects/%s/instances/%s/databases/%s", spannerProjectID, "test20200621", "sinmetal"),
+		spanner.ClientConfig{
+			SessionPoolConfig: spanner.SessionPoolConfig{
+				MinOpened: 1,
+				MaxOpened: 10,
+			}})
 	if err != nil {
 		panic(err)
 	}
