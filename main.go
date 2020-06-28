@@ -10,7 +10,11 @@ import (
 	"cloud.google.com/go/spanner"
 )
 
-type Row struct {
+type Config struct {
+	FromBigQueryProjectID string
+	ToSpannerProjectID    string
+	ToSpannerInstance     string
+	ToSpannerTableName    string
 }
 
 func main() {
@@ -18,10 +22,12 @@ func main() {
 	q = ReadFile()
 	fmt.Println(q)
 
-	bqProjectID, spannerProjectID := GetProjectID()
+	config := GetConfig()
+	fmt.Printf("%+v\n", config)
+
 	ctx := context.Background()
 
-	bq, err := bigquery.NewClient(ctx, bqProjectID)
+	bq, err := bigquery.NewClient(ctx, config.FromBigQueryProjectID)
 	if err != nil {
 		panic(err)
 	}
@@ -34,7 +40,7 @@ func main() {
 		panic(err)
 	}
 
-	spa, err := spanner.NewClientWithConfig(ctx, fmt.Sprintf("projects/%s/instances/%s/databases/%s", spannerProjectID, "test20200621", "sinmetal"),
+	spa, err := spanner.NewClientWithConfig(ctx, fmt.Sprintf("projects/%s/instances/%s/databases/%s", config.ToSpannerProjectID, config.ToSpannerInstance, "sinmetal"),
 		spanner.ClientConfig{
 			SessionPoolConfig: spanner.SessionPoolConfig{
 				MinOpened: 1,
@@ -44,7 +50,7 @@ func main() {
 		panic(err)
 	}
 
-	m, err := spanner.InsertStruct("TABLE", &row)
+	m, err := spanner.InsertStruct(config.ToSpannerTableName, &row)
 	if err != nil {
 		panic(err)
 	}
@@ -60,16 +66,23 @@ func main() {
 }
 
 func ReadFile() string {
-	b, err := ioutil.ReadFile("q.sql")
+	b, err := ioutil.ReadFile("query.sql")
 	if err != nil {
 		panic(err)
 	}
 	return string(b)
 }
 
-func GetProjectID() (string, string) {
+func GetConfig() *Config {
 	bqProjectID := os.Getenv("FROM_BIGQUERY_PROJECT_ID")
 	spannerProjectID := os.Getenv("TO_SPANNER_PROJECT_ID")
+	spannerInstance := os.Getenv("TO_SPANNER_INSTANCE")
+	spannerTable := os.Getenv("TO_SPANNER_TABLE")
 
-	return bqProjectID, spannerProjectID
+	return &Config{
+		FromBigQueryProjectID: bqProjectID,
+		ToSpannerProjectID:    spannerProjectID,
+		ToSpannerInstance:     spannerInstance,
+		ToSpannerTableName:    spannerTable,
+	}
 }
